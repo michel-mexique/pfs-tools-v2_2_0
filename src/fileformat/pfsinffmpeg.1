@@ -1,0 +1,24 @@
+.TH "pfsinffmpeg" 1
+.SH NAME
+pfsinffmpeg \- Read a video file using ffmpeg and write pfs stream to the standard output
+.SH SYNOPSIS
+.B pfsinffmpeg
+[--\fBhdr\fR] <file>
+.SH DESCRIPTION
+Use this command to read video files, both regular and encoded using HDR color space and transfer funcrions (e.g. BT.2100). 
+.SH OPTIONS
+.TP
+--\fBhdr\fR
+The video will be converted to the HDR-capable colour space and BT.2020 colour gamut.
+.SH EXAMPLES
+.TP
+pfsinffmpeg myvideo.mp4 | pfsview
+View video frame by frame.
+.TP  
+pfsinffmpeg --hdr myhdrvideo.mp4 | pfsview
+View HDR video frame by frame.
+.SH "SEE ALSO"
+.BR pfsout (1)
+.SH BUGS
+Please report bugs and comments to the pfstools discussion group
+(http://groups.google.com/group/pfstools).

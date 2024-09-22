@@ -1,0 +1,44 @@
+#!@BASH_PATH@
+
+############################################################
+# Read video with ffmpeg
+############################################################
+
+if test -z "$1" || test "$1" = "--help"; then
+cat <<EOF
+Read video file with ffmpeg and write pfs stream to
+the standard output.
+
+Usage: pfsinffmpeg [--hdr] <video_file> 
+
+See the man page for more information.
+EOF
+    exit 1
+fi
+
+if [ "$1" == "--hdr" ]; then
+    do_hdr=1
+    shift
+else
+    do_hdr=0
+fi
+
+input_video=$1
+
+if [ ! -f "${input_video}" ]; then
+    echo "File \"${input_video}\" does not exist!" >&2
+    exit 1
+fi
+
+if ! which ffprobe 2>&1 >/dev/null || ! which ffmpeg 2>&1 >/dev/null; then
+    echo "This command requires both ffprobe and ffmpeg to be installed. Install ffmpeg fron https://ffmpeg.org/ or from the distribution packages." >&2
+    exit 1
+fi
+
+resolution=`ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 ${input_video} | tr -d '\r' | sed 's/^/--/' | tr '\n' ' '`
+
+if [ $do_hdr == "1" ]; then
+    ffmpeg -i ${input_video} -f rawvideo -pix_fmt yuv444p10le -colorspace bt2020nc - | pfsinyuv -v ${resolution} --colorspace pq2020 -s 444 -b 10 -
+else
+    ffmpeg -i ${input_video} -f rawvideo -pix_fmt yuv444p -colorspace bt709 - | pfsinyuv -v ${resolution} --colorspace bt709 -s 444 -b 8 -
+fi

@@ -1,0 +1,97 @@
+#!@BASH_PATH@
+############################################################
+# Read pfs frames from stdin and forward them to ffmpeg
+# program
+############################################################
+# 
+# This file is a part of PFSTOOLS package.
+# ---------------------------------------------------------------------- 
+# Copyright (C) 2003-2022 Rafal Mantiuk and Grzegorz Krawczyk
+# 
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# ---------------------------------------------------------------------- 
+#
+
+if test "$1" = "--help"; then
+cat <<EOF
+This command is a wrapper for ffmpeg program and can be used to
+write pfs frames to a compressed video.
+
+Usage: pfsoutffmpeg -s:v WxH -r FPS [--crf 12] [--quiet] [--hdr|--hdr-vp9] <ffmpeg output options> output_file.mp4
+
+You must manually specify correct resolution of the output video using "-s:v WxH" argument, for example "-s:v 1920x1080" for FullHD and "3840x2160" for 4K.
+
+See manual of ffmpeg for further information. Note that the usage of
+'-f' switch (input format specifier) and '-i' switch (input file
+specifier) is implemented inside the script and is therefore not
+allowed.
+
+See the man page for sample usage.
+EOF
+exit 1
+fi
+
+if ! which ffmpeg 2>&1 >/dev/null; then
+    echo "This command requires ffmpeg to be installed. Install ffmpeg fron https://ffmpeg.org/ or from the distribution packages." >&2
+    exit 1
+fi
+
+FFMPEG="ffmpeg"
+#FFMPEG_SWICHES="-f imagepipe -i - "
+FFMPEG_USER_SWICHES=""
+
+IS_RES_SET="0"
+OUT_FORMAT="SDR"
+while test "$1"; do
+      if test "$1" = "-f" -o "$1" = "-i"; then
+         echo "pfsoutffmpeg: Usage of -f and -i switches is not allowed." &1>2
+         exit 1
+      fi
+      if test "$1" = "-s:v"; then
+            FFMPEG_SWICHES="-s:v $2"
+            IS_RES_SET="1"
+            shift
+      elif test "$1" = "--quiet"; then
+            FFMPEG_USER_SWICHES="${FFMPEG_USER_SWICHES} -hide_banner -loglevel error"
+      elif test "$1" = "--hdr"; then
+            OUT_FORMAT="HDR_h265"
+      elif test "$1" = "--hdr-vp9"; then
+            OUT_FORMAT="HDR_vp9"
+      else
+            FFMPEG_USER_SWICHES="${FFMPEG_USER_SWICHES} $1"
+      fi
+      shift
+done
+
+if [ $IS_RES_SET == "0" ]; then
+         echo "pfsoutffmpeg: You must pass the resolution argument (-s:v HxW) to pfsoutffmpeg." &1>2
+         exit 1
+fi
+
+if [ $OUT_FORMAT == "SDR" ]; then
+      FFMPEG_SWICHES="${FFMPEG_SWICHES} -f rawvideo -pix_fmt yuv444p -colorspace bt709 -i -"
+      pfsoutyuv --colorspace bt709 --chroma-format 444 --bitdepth 8 - | ${FFMPEG} ${FFMPEG_SWICHES} ${FFMPEG_USER_SWICHES}
+elif [ $OUT_FORMAT == "HDR_h265" ]; then
+      FFMPEG_SWICHES="${FFMPEG_SWICHES} -f rawvideo -pix_fmt yuv444p10le -colorspace bt2020nc -color_primaries bt2020 -color_trc smpte2084 -i - -vcodec libx265 -x265-params 'hdr-opt=1:repeat-headers=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:master-display=G(0,0)B(0,0)R(0,0)WP(0,0)L(0,0):max-cll=0,0'"
+      pfsoutyuv --colorspace pq2020 --chroma-format 444 --bitdepth 10 - | ${FFMPEG} ${FFMPEG_SWICHES} ${FFMPEG_USER_SWICHES}
+elif [ $OUT_FORMAT == "HDR_vp9" ]; then
+      FFMPEG_SWICHES="${FFMPEG_SWICHES} -f rawvideo -pix_fmt yuv444p10le -colorspace bt2020nc -color_primaries bt2020 -color_trc smpte2084 -i - -vcodec libvpx-vp9 -color_primaries 9 -color_trc 16 -colorspace 9 -color_range 1 -profile:v 2 -b:v 0"
+      pfsoutyuv --colorspace pq2020 --chroma-format 444 --bitdepth 10 - | ${FFMPEG} ${FFMPEG_SWICHES} ${FFMPEG_USER_SWICHES}
+else
+      echo "pfsoutffmpeg: Unrecognized output video format." &1>2
+      exit 1
+fi
+
+#pfsoutppm - | ${FFMPEG} ${FFMPEG_SWICHES} ${FFMPEG_USER_SWICHES}

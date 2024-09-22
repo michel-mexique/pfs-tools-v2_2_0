@@ -1,0 +1,9 @@
+Some planned changes
+
+* pfsview should use OpenGL and GLSL for better performance
+* Add support for ICC color profiles (litecms)
+* pfssize should use better filters when downsizing
+* Performance improvements:
+   * Shared memory instead of pipes
+   * "Lazy" color space transform
+   

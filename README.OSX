@@ -1,0 +1,51 @@
+To compile pfstools from sources on OSX, you need:
+1. XCode
+2. Any of:
+   Homebrew - http://brew.sh/ (recommended)
+   Fink - http://www.finkproject.org/
+   MacPorts - https://www.macports.org/
+
+Refer to README file for the instruction on how to compile with cmake.
+
+
+===== Homebrew instructions =====
+WORK IN PROGRESS 
+
+To install the dependencies:
+
+```
+brew install cmake qt@5 imagemagick@6 openexr zlib ilmbase netpbm opencv@3 fftw gsl dcraw
+```
+Then, depending on your brew installation diretory:
+```
+export CMAKE_PREFIX_PATH=/opt/homebrew/opt/qt\@5:/opt/homebrew/opt/openexr:/opt/homebrew/opt/ilmbase:/opt/homebrew/opt/imagemagick\@6:/opt/homebrew/opt/libexif
+````
+or
+```
+export CMAKE_PREFIX_PATH=/usr/local/opt/qt\@5:/usr/local/opt/openexr:/usr/local/opt/ilmbase:/usr/local/opt/imagemagick\@6:/usr/local/opt/libexif
+```
+
+If you have the Command Line Tools instead of the full XCode installation, you need to run:
+```
+defaults write com.apple.dt.Xcode IDEXcodeVersionForAgreedToGMLicense 13.0
+```
+
+Then compile:
+```
+mkdir build
+cd build
+cmake ../
+make
+sudo make install
+```
+
+Then add to `~/.zshrc`:
+```
+export PATH="/opt/homebrew/opt/qt@5/bin:$PATH"
+export LDFLAGS="-L/opt/homebrew/opt/qt@5/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/qt@5/include"
+``
+
+
+
+
